@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Aniversários & Datas Comemorativas</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #6BAEFF; /* fundo azul claro */
+      color: #000;
+    }
+
+    header {
+      background: linear-gradient(90deg, #fff 0%, #00b81d 50%, #000 100%);
+      color: #fff;
+      text-align: center;
+      padding: 2rem 1rem 1rem;
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    header h2 {
+      margin: 0.5rem 0 0;
+      font-size: 1.2rem;
+      font-weight: normal;
+      letter-spacing: 2px;
+    }
+
+    #todayBirthdays {
+      border-radius: 12px;
+      margin: 2rem auto;
+      padding: 1rem;
+      max-width: 800px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      background: #fff;
+      color: #000;
+    }
+
+    #todayBirthdays h3 {
+      margin-top: 0;
+      color: #025E00;
+    }
+
+    .today-entry {
+      margin-top: 0.5rem;
+      padding: 0.3rem 0;
+      font-weight: 600;
+      color: #000;
+    }
+.form-container {
+  background: #111;
+  padding: 1rem;
+  margin: 0 auto 2rem;
+  max-width: 900px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.form-container input, .form-container button {
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #0f0;
+}
+
+.form-container input {
+  flex: 1;
+  background: #000;
+  color: #fff;
+}
+
+.form-container button {
+  background-color: #0f0;
+  color: #000;
+  cursor: pointer;
+  border: none;
+  transition: background 0.3s;
+  font-weight: bold;
+  min-width: 100px;
+  text-align: center;
+}
+
+.form-container button:hover {
+  background-color: #00cc00;
+}
+
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 1rem 2rem;
+    }
+
+    .month {
+      border-radius: 16px;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      padding: 1.5rem;
+    }
+
+    .month:nth-child(3n+1) { background: #00FF00; color: #000; border: 2px solid #000;  }
+    .month:nth-child(3n+2) { background: #00B81D; color: #000; border: 2px solid #000;  }
+    .month:nth-child(3n+3) { background: #025E00; color: #000; border: 2px solid #000; }
+
+    .month h2 {
+      margin-top: 0;
+      border-bottom: 2px solid rgba(255,255,255,0.3);
+      padding-bottom: 0.5rem;
+    }
+
+    .entry {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .entry:last-child { border-bottom: none; }
+
+    .name { font-weight: 600; }
+    .info { font-size: 0.95rem; }
+
+    .remove-btn {
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .remove-btn:hover { background: #e63939; }
+
+    @media (max-width: 600px) {
+      .entry {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Aniversários & Datas Comemorativas</h1>
+  <h2>T.U.C.U.V.O.R.I</h2>
+</header>
+
+<div id="todayBirthdays" class="container"></div>
+
+<div class="form-container">
+  <input type="text" id="nameInput" placeholder="Nome">
+  <input type="text" id="dateInput" placeholder="Data de Aniversário" maxlength="5">
+  <button onclick="addBirthday()">Adicionar</button>
+  <button onclick="removeBirthday()">Remover</button>
+</div>
+
+<div class="container" id="calendar"></div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+  import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCLfCY7VCgtW92f3Dlqst5yp6BTNqw5UuQ",
+    authDomain: "calendario-tucuvori.firebaseapp.com",
+    databaseURL: "https://calendario-tucuvori-default-rtdb.firebaseio.com",
+    projectId: "calendario-tucuvori",
+    storageBucket: "calendario-tucuvori.firebasestorage.app",
+    messagingSenderId: "364406314929",
+    appId: "1:364406314929:web:ec7e7709bec677690b4f90"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const calendar = document.getElementById("calendar");
+  let birthdays = {};
+
+  const months = [
+    "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+    "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+  ];
+
+  function parseStoredDate(dateStr) {
+    const [m,d] = dateStr.split("-");
+    return { month: m, day: d };
+  }
+
+  function formatDateDM(dateStr) {
+    const parsed = parseStoredDate(dateStr);
+    return `${parsed.day.padStart(2,'0')}/${parsed.month.padStart(2,'0')}`;
+  }
+
+  function renderTodayBirthdays() {
+    const todayDiv = document.getElementById("todayBirthdays");
+    const today = new Date();
+    const day = today.getDate().toString().padStart(2,"0");
+    const month = (today.getMonth()+1).toString().padStart(2,"0");
+
+    const todayList = Object.values(birthdays).filter(b => {
+      const parsed = parseStoredDate(b.date);
+      return parsed.month === month && parsed.day === day;
+    });
+
+    if (todayList.length === 0) {
+      todayDiv.innerHTML = "";
+      return;
+    }
+
+    todayDiv.innerHTML = `
+      <h3>🎉 Aniversariante${todayList.length > 1 ? "s":""} de hoje!</h3>
+      ${todayList.map(b=>`<div class="today-entry">🎂 ${b.name}</div>`).join("")}
+    `;
+  }
+
+  function renderCalendar() {
+    calendar.innerHTML="";
+    months.forEach((monthName, monthIndex)=>{
+      const monthDiv = document.createElement("div");
+      monthDiv.className="month";
+      monthDiv.innerHTML=`<h2>${monthName}</h2>`;
+
+      const monthBirthdays = Object.entries(birthdays).filter(([id,b])=>{
+        const parsed = parseStoredDate(b.date);
+        return parseInt(parsed.month)-1 === monthIndex;
+      });
+
+      if(monthBirthdays.length===0){
+        monthDiv.innerHTML+=`<p>Sem aniversários.</p>`;
+      } else {
+        monthBirthdays.sort((a,b)=>{
+          const dA=parseInt(parseStoredDate(a[1].date).day);
+          const dB=parseInt(parseStoredDate(b[1].date).day);
+          return dA-dB;
+        });
+
+        monthBirthdays.forEach(([id,b])=>{
+          const formatted=formatDateDM(b.date);
+          monthDiv.innerHTML+=`
+            <div class="entry">
+              <div>
+                <div class="name">${b.name}</div>
+                <div class="info">${formatted}</div>
+              </div>
+        
+            </div>
+          `;
+        });
+      }
+
+      calendar.appendChild(monthDiv);
+    });
+  }
+
+  function parseDateInput(input) {
+    const parts = input.split("/");
+    if (parts.length === 2) {
+      const [d,m] = parts;
+      return `${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    }
+    return null;
+  }
+
+  function addBirthday() {
+    const name=document.getElementById("nameInput").value.trim();
+    const rawDate=document.getElementById("dateInput").value.trim();
+    if(!name||!rawDate) return alert("Preencha todos os campos!");
+    const date=parseDateInput(rawDate);
+    if(!date) return alert("Formato inválido. Use DD/MM");
+
+    push(ref(db,"birthdays"),{name,date});
+    document.getElementById("nameInput").value="";
+    document.getElementById("dateInput").value="";
+  }
+
+  function removeBirthday() {
+    const name=document.getElementById("nameInput").value.trim().toLowerCase();
+    const rawDate=document.getElementById("dateInput").value.trim();
+    const date=parseDateInput(rawDate);
+    if(!date) return alert("Formato inválido.");
+    const entry=Object.entries(birthdays).find(([id,b])=>
+      b.name.toLowerCase()===name && b.date===date
+    );
+    if(entry) remove(ref(db,"birthdays/"+entry[0]));
+    else alert("Aniversário não encontrado.");
+  }
+
+  function deleteBirthday(id){ remove(ref(db,"birthdays/"+id)); }
+
+  onValue(ref(db,"birthdays"), snapshot=>{
+    birthdays=snapshot.val()||{};
+    renderTodayBirthdays();
+    renderCalendar();
+  });
+
+  // Máscara automática no campo de data
+  const dateInput=document.getElementById("dateInput");
+  dateInput.addEventListener("input", e=>{
+    let v=e.target.value.replace(/\D/g,"");
+    if(v.length>=3){
+      e.target.value=v.replace(/^(\d{2})(\d{0,2}).*/, (m,p1,p2)=> p1+"/"+p2);
+    } else {
+      e.target.value=v;
+    }
+  });
+
+  window.addBirthday=addBirthday;
+  window.removeBirthday=removeBirthday;
+</script>
+
+</body>
+</html>
